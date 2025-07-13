@@ -1,18 +1,19 @@
 package com.justjdupuis.tesla_summonpro
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.Toast
-import androidx.navigation.fragment.findNavController
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import com.justjdupuis.tesla_summonpro.databinding.FragmentFirstBinding
 
 
@@ -51,7 +52,7 @@ class FirstFragment : Fragment(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFrag.getMapAsync(this)
 
-        val latInput = binding.latitudeInput
+        /*val latInput = binding.latitudeInput
         val lonInput = binding.longitudeInput
 
         binding.buttonFirst.setOnClickListener {
@@ -66,14 +67,33 @@ class FirstFragment : Fragment(), OnMapReadyCallback {
             }
 
             Toast.makeText(requireContext(), "Lat: $lastLatInput, Lon: $lastLonInput", Toast.LENGTH_SHORT).show()
-        }
+        }*/
+
     }
+
+    fun dpToPx(dp: Int) = (dp * resources.displayMetrics.density).toInt()
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         // move camera somewhere:
         val defaultLoc = LatLng(45.5017, -73.5673)
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLoc, 12f))
+
+        val orig = BitmapFactory.decodeResource(resources, R.drawable.vehicle_mapmarker_online)
+
+        val size = dpToPx(48)
+        val smallBmp = Bitmap.createScaledBitmap(orig, size, size, false)
+
+        val icon = BitmapDescriptorFactory.fromBitmap(smallBmp)
+        val pt = LatLng(45.402120, -73.479887)
+        map.addMarker(
+            MarkerOptions()
+                .position(pt)
+                .icon(icon)
+                .anchor(0.5f, 0.5f)
+                .rotation(45f)
+                .flat(true)
+         )
     }
 
     override fun onDestroyView() {
