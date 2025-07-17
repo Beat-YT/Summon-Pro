@@ -3,11 +3,24 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/FirstFragment">
+    app:startDestination="@id/WelcomeFragment">
 
+    <!-- 🔥 Your new WelcomeFragment -->
+    <fragment
+        android:id="@+id/WelcomeFragment"
+        android:name="com.justjdupuis.summonpro.WelcomeFragment"
+        android:label="Welcome"
+        tools:layout="@layout/fragment_welcome">
+
+        <action
+            android:id="@+id/action_WelcomeFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment" />
+    </fragment>
+
+    <!-- Existing fragments -->
     <fragment
         android:id="@+id/FirstFragment"
-        android:name="com.justjdupuis.tesla_summonpro.FirstFragment"
+        android:name="com.justjdupuis.summonpro.FirstFragment"
         android:label="@string/first_fragment_label"
         tools:layout="@layout/fragment_first">
 
@@ -15,9 +28,10 @@
             android:id="@+id/action_FirstFragment_to_SecondFragment"
             app:destination="@id/SecondFragment" />
     </fragment>
+
     <fragment
         android:id="@+id/SecondFragment"
-        android:name="com.justjdupuis.tesla_summonpro.SecondFragment"
+        android:name="com.justjdupuis.summonpro.SecondFragment"
         android:label="@string/second_fragment_label"
         tools:layout="@layout/fragment_second">
 

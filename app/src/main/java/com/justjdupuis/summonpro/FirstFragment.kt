@@ -1,5 +1,7 @@
-package com.justjdupuis.tesla_summonpro
+package com.justjdupuis.summonpro
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -14,15 +16,14 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.justjdupuis.tesla_summonpro.databinding.FragmentFirstBinding
-
-
+import com.justjdupuis.summonpro.databinding.FragmentFirstBinding
 
 /**
  * A simple [Fragment] subclass as the default destination in the navigation.
  */
 class FirstFragment : Fragment(), OnMapReadyCallback {
 
+    private lateinit var permMgr: PermissionManager
     private var _binding: FragmentFirstBinding? = null
     private lateinit var map: GoogleMap
 
@@ -36,13 +37,12 @@ class FirstFragment : Fragment(), OnMapReadyCallback {
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater, container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
-
         _binding = FragmentFirstBinding.inflate(inflater, container, false)
+        permMgr = PermissionManager(this)
         return binding.root
-
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -75,9 +75,31 @@ class FirstFragment : Fragment(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
+
+        map.mapType = GoogleMap.MAP_TYPE_HYBRID
+        map.uiSettings.isTiltGesturesEnabled = false
+
+        @SuppressLint("MissingPermission")
+        if (PermissionManager.isGranted(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        ) {
+            map.isMyLocationEnabled = true
+            map.uiSettings.isMyLocationButtonEnabled = true
+        } else {
+            permMgr.request(Manifest.permission.ACCESS_FINE_LOCATION) { granted ->
+                if (granted) {
+                    map.isMyLocationEnabled = true
+                    map.uiSettings.isMyLocationButtonEnabled = true
+                }
+            }
+        }
+
+
         // move camera somewhere:
         val defaultLoc = LatLng(45.5017, -73.5673)
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLoc, 12f))
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLoc, 16f))
 
         val orig = BitmapFactory.decodeResource(resources, R.drawable.vehicle_mapmarker_online)
 
@@ -91,9 +113,9 @@ class FirstFragment : Fragment(), OnMapReadyCallback {
                 .position(pt)
                 .icon(icon)
                 .anchor(0.5f, 0.5f)
-                .rotation(45f)
+                .rotation(213f)
                 .flat(true)
-         )
+        )
     }
 
     override fun onDestroyView() {

@@ -1,4 +1,4 @@
-package com.justjdupuis.tesla_summonpro
+package com.justjdupuis.summonpro
 
 import org.junit.Test
 

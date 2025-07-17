@@ -1,7 +1,9 @@
-package com.justjdupuis.tesla_summonpro
+package com.justjdupuis.summonpro
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
@@ -10,27 +12,41 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.core.content.ContextCompat
-import com.justjdupuis.tesla_summonpro.databinding.ActivityMainBinding
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.justjdupuis.summonpro.api.AuthApi
+import com.justjdupuis.summonpro.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
-
         Carpenter.createNotificationChannel(this);
 
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        val fab = findViewById<FloatingActionButton>(R.id.fab)
+
         val navController = findNavController(R.id.nav_host_fragment_content_main)
-        appBarConfiguration = AppBarConfiguration(navController.graph)
+        appBarConfiguration = AppBarConfiguration(
+            setOf(R.id.FirstFragment) // top-level = no back arrow here
+        )
         setupActionBarWithNavController(navController, appBarConfiguration)
 
         binding.fab.setOnClickListener { view ->
@@ -39,6 +55,40 @@ class MainActivity : AppCompatActivity() {
 
             Intent(this, SummonForegroundService::class.java).also { intent ->
                 ContextCompat.startForegroundService(this, intent)
+            }
+        }
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (destination.id == R.id.WelcomeFragment) {
+                toolbar.visibility = View.GONE
+                fab.visibility = View.GONE
+                window.navigationBarColor = Color.BLACK
+            } else {
+                toolbar.visibility = View.VISIBLE
+                fab.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+
+        Log.d("OAuth", "deep linK: $uri")
+
+        if (uri.scheme == "com.justjdupuis.summonpro" &&
+            uri.host == "login" &&
+            uri.pathSegments.contains("tesla-auth")) {
+
+            val authCode = uri.getQueryParameter("code")
+            val redirectUri = uri.scheme + "://" + uri.authority + uri.path
+            if (authCode.isNullOrEmpty()) {
+                return;
+            }
+
+            Log.d("OAuth", "Received code: $authCode")
+            lifecycleScope.launch {
+                val response = AuthApi.service.loginWithTeslaCode(authCode, redirectUri)
+                Log.d("OAuth", "WE ARE IN BOYS! ${response.encryptedToken}")
             }
         }
     }
@@ -64,4 +114,5 @@ class MainActivity : AppCompatActivity() {
         return navController.navigateUp(appBarConfiguration)
                 || super.onSupportNavigateUp()
     }
+
 }

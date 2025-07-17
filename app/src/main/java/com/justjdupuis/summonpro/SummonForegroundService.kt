@@ -1,4 +1,4 @@
-package com.justjdupuis.tesla_summonpro
+package com.justjdupuis.summonpro
 
 import android.app.Service
 import android.content.Intent
@@ -7,7 +7,6 @@ import android.location.LocationManager
 import android.location.provider.ProviderProperties
 import android.os.IBinder
 import android.os.SystemClock
-import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.*
 
@@ -51,7 +50,7 @@ class SummonForegroundService : Service() {
     private fun startTeslaFetchLoop() {
         serviceScope.launch {
             while (isActive) {
-                try {
+                /*try {
                     val ds = TeslaApi.getDriveState(token, carId)
 
                     val A = Carpenter.Point(ds.latitude, ds.longitude)
@@ -66,7 +65,7 @@ class SummonForegroundService : Service() {
                     pushMockLocation();
                 } catch (e: Exception) {
                     Log.e("SummonService", "Failed to fetch Tesla GPS", e)
-                }
+                }*/
                 delay(5000)
             }
         }
