@@ -182,7 +182,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        if (isServiceRunning(SummonForegroundService::class.java)) {
+        if (SummonForegroundService.isRunning) {
             Log.d("MainActivity", "onResume — Summon service is running — stay on FirstFragment")
             return
         }
@@ -206,6 +206,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+
+        if (!SummonForegroundService.isRunning && WebSocketManager.isConnected()) {
+            lifecycleScope.launch {
+                WebSocketManager.close()
+                unregisterTelemetry()
+            }
+        }
+    }
+
+
     override fun onDestroy() {
         super.onDestroy()
         if (WebSocketManager.isConnected()) {
@@ -221,13 +233,5 @@ class MainActivity : AppCompatActivity() {
             val token = TokenStore.getAccessToken(this) ?: return
             TelemetryApi.service.unregisterTelemetry(token, WebSocketManager.vin.orEmpty())
         }.onFailure { Log.e("MainActivity", "Unregister telemetry error", it) }
-    }
-
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        @Suppress("DEPRECATION")
-        return manager.getRunningServices(Int.MAX_VALUE).any {
-            it.service.className == serviceClass.name
-        }
     }
 }
