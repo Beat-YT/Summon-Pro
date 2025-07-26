@@ -29,6 +29,8 @@ import com.justjdupuis.summonpro.api.WebSocketManager
 import com.justjdupuis.summonpro.databinding.ActivityMainBinding
 import com.justjdupuis.summonpro.utils.Carpenter
 import com.justjdupuis.summonpro.utils.TokenStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
@@ -177,22 +179,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-
-        if (isServiceRunning(SummonForegroundService::class.java)) {
-            Log.d("MainActivity", "onPause — Summon service is running — Don't disconnect telemetry")
-            return
-        }
-
-        if (WebSocketManager.isConnected()) {
-            lifecycleScope.launch {
-                WebSocketManager.close()
-                unregisterTelemetry()
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
 
@@ -220,11 +206,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        @Suppress("DEPRECATION")
-        return manager.getRunningServices(Int.MAX_VALUE).any {
-            it.service.className == serviceClass.name
+    override fun onDestroy() {
+        super.onDestroy()
+        if (WebSocketManager.isConnected()) {
+            WebSocketManager.close()
+            CoroutineScope(Dispatchers.IO).launch {
+                unregisterTelemetry()
+            }
         }
     }
 
@@ -233,5 +221,13 @@ class MainActivity : AppCompatActivity() {
             val token = TokenStore.getAccessToken(this) ?: return
             TelemetryApi.service.unregisterTelemetry(token, WebSocketManager.vin.orEmpty())
         }.onFailure { Log.e("MainActivity", "Unregister telemetry error", it) }
+    }
+
+    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        @Suppress("DEPRECATION")
+        return manager.getRunningServices(Int.MAX_VALUE).any {
+            it.service.className == serviceClass.name
+        }
     }
 }

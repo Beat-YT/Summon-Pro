@@ -31,6 +31,7 @@ import kotlin.system.exitProcess
 
 class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListener {
     companion object {
+        internal var isRunning = false
         private const val TAG = "SummonForegroundService"
         private const val ACTION_STOP_SERVICE = "com.justjdupuis.summonpro.action.STOP_SERVICE"
         private const val PROVIDER = LocationManager.GPS_PROVIDER
@@ -59,6 +60,7 @@ class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListen
             return START_NOT_STICKY
         }
 
+        isRunning = true;
         startForeground(1, Carpenter.buildNotification(this))
        /* val lat = intent?.getDoubleExtra(EXTRA_LOCATION_LAT, Double.NaN)
         val lng = intent?.getDoubleExtra(EXTRA_LOCATION_LNG, Double.NaN)
@@ -172,6 +174,7 @@ class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListen
 
     override fun onDestroy() {
         super.onDestroy()
+        isRunning = false
         Log.d(TAG, "Service destroyed")
         serviceScope.cancel()
         WebSocketManager.removeListener(this)

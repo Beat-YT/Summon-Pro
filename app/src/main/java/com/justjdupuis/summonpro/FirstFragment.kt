@@ -210,6 +210,17 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
         _binding = null
     }
 
+    override fun onPause() {
+        super.onPause()
+
+        if (!SummonForegroundService.isRunning && WebSocketManager.isConnected()) {
+            lifecycleScope.launch {
+                WebSocketManager.close()
+                unregisterTelemetry()
+            }
+        }
+    }
+
     override fun onStart() {
         WebSocketManager.addListener(this)
         super.onStart()
@@ -236,6 +247,13 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
     }
 
     override fun onFailure(t: Throwable) {
+    }
+
+    private suspend fun unregisterTelemetry() {
+        runCatching {
+            val token = TokenStore.getAccessToken(requireContext()) ?: return
+            TelemetryApi.service.unregisterTelemetry(token, WebSocketManager.vin.orEmpty())
+        }.onFailure { Log.e("MainActivity", "Unregister telemetry error", it) }
     }
 
     private fun showAlert(title: String, message: String) {

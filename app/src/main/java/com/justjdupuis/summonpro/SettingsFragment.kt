@@ -52,7 +52,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 .setTitle("About SummonPro")
                 .setMessage(
                     """
-                    SummonPro was built because this is how Smart Summon should be.
+                    SummonPro was built because this is how ASS should be.
                     
                     Not limited by 85 meters. Not tied to short-range Bluetooth. Just… better.
                     
