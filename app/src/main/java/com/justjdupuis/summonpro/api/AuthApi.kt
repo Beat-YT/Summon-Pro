@@ -10,7 +10,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 
 object AuthApi {
-    private const val BASE_URL = "http://192.168.2.17:8080/api/auth/"
+    private const val BASE_URL = "https://gate.summon-pro.cc/api/auth/"
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
@@ -20,7 +20,7 @@ object AuthApi {
         @SerializedName("encrypted_token") val encryptedToken: String,
         @SerializedName("encrypted_refresh_token") val encryptedRefreshToken: String,
         @SerializedName("id_token") val idToken: String,
-        @SerializedName("expires_in") val expiresIn: Int,
+        @SerializedName("expires_in") val expiresIn: Long,
         @SerializedName("token_type") val tokenType: String
     )
     interface Service {

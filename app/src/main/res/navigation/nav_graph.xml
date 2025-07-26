@@ -5,7 +5,6 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/WelcomeFragment">
 
-    <!-- 🔥 Your new WelcomeFragment -->
     <fragment
         android:id="@+id/WelcomeFragment"
         android:name="com.justjdupuis.summonpro.WelcomeFragment"
@@ -13,11 +12,44 @@
         tools:layout="@layout/fragment_welcome">
 
         <action
+            android:id="@+id/action_WelcomeFragment_to_VehicleList"
+            app:destination="@id/VehicleListFragment" />
+
+        <action
+            android:id="@+id/action_WelcomeFragment_to_VirtualKeyFragment"
+            app:destination="@id/VirtualKeyIntroFragment" />
+
+        <action
             android:id="@+id/action_WelcomeFragment_to_FirstFragment"
             app:destination="@id/FirstFragment" />
     </fragment>
 
-    <!-- Existing fragments -->
+    <fragment
+        android:id="@+id/VehicleListFragment"
+        android:name="com.justjdupuis.summonpro.VehicleListFragment"
+        android:label="Select Vehicle"
+        tools:layout="@layout/fragment_vehicle">
+
+        <action
+            android:id="@+id/action_VehicleListFragment_to_VirtualKeyIntroFragment"
+            app:destination="@id/VirtualKeyIntroFragment" />
+
+        <action
+            android:id="@+id/action_VehicleListFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/VirtualKeyIntroFragment"
+        android:name="com.justjdupuis.summonpro.VirtualKeyIntroFragment"
+        android:label="Virtual Key Intro"
+        tools:layout="@layout/fragment_virtual_key_intro">
+
+        <action
+            android:id="@+id/action_VirtualKeyIntroFragment_to_FirstFragment"
+            app:destination="@id/FirstFragment" />
+    </fragment>
+
     <fragment
         android:id="@+id/FirstFragment"
         android:name="com.justjdupuis.summonpro.FirstFragment"
@@ -27,6 +59,10 @@
         <action
             android:id="@+id/action_FirstFragment_to_SecondFragment"
             app:destination="@id/SecondFragment" />
+
+        <action
+            android:id="@+id/action_FirstFragment_to_VehicleListFragment"
+            app:destination="@id/VehicleListFragment" />
     </fragment>
 
     <fragment
@@ -39,4 +75,9 @@
             android:id="@+id/action_SecondFragment_to_FirstFragment"
             app:destination="@id/FirstFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/SettingsFragment"
+        android:name="com.justjdupuis.summonpro.SettingsFragment"
+        android:label="Settings"/>
 </navigation>

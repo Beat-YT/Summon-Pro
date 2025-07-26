@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION"
         tools:ignore="MockLocation,ProtectedPermissions" />
 
+    <queries>
+        <package android:name="com.teslamotors.tesla" />
+    </queries>
+
     <application
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"

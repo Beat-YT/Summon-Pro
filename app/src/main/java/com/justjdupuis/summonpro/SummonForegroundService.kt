@@ -1,72 +1,140 @@
 package com.justjdupuis.summonpro
 
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.location.Location
 import android.location.LocationManager
 import android.location.provider.ProviderProperties
 import android.os.IBinder
 import android.os.SystemClock
+import android.util.Log
 import android.widget.Toast
-import kotlinx.coroutines.*
+import androidx.navigation.findNavController
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.SphericalUtil
+import com.justjdupuis.summonpro.api.TelemetryApi
+import com.justjdupuis.summonpro.api.WebSocketManager
+import com.justjdupuis.summonpro.utils.Carpenter
+import com.justjdupuis.summonpro.utils.GeoHelper
+import com.justjdupuis.summonpro.utils.TokenStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.system.exitProcess
 
-class SummonForegroundService : Service() {
+class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListener {
+    companion object {
+        private const val TAG = "SummonForegroundService"
+        private const val ACTION_STOP_SERVICE = "com.justjdupuis.summonpro.action.STOP_SERVICE"
+        private const val PROVIDER = LocationManager.GPS_PROVIDER
+        private const val MOCK_INTERVAL_MS = 500L
+        private const val GEOFENCE_RADIUS_M = 80.0
+        const val EXTRA_LOCATION_LAT = "extra_location_lat"
+        const val EXTRA_LOCATION_LNG = "extra_location_lng"
+    }
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var locationManager: LocationManager
-    private val mockLocation = Location(LocationManager.GPS_PROVIDER)
-    private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val mockLocation = Location(PROVIDER)
+    private var screenOffReceiver: BroadcastReceiver? = null
 
-    private val token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InFEc3NoM2FTV0cyT05YTTdLMzFWV0VVRW5BNCJ9.eyJpc3MiOiJodHRwczovL2ZsZWV0LWF1dGgudGVzbGEuY29tL29hdXRoMi92My9udHMiLCJhenAiOiI0M2I5Y2M0Mi1lMjdhLTRkYTctYTdlMi02ZTkzYjgxNGRkM2IiLCJzdWIiOiI0YTg0N2U2Zi1mOWE5LTRhZTEtYmU2Yi04M2M4MGMwYmRkYjMiLCJhdWQiOlsiaHR0cHM6Ly9mbGVldC1hcGkucHJkLm5hLnZuLmNsb3VkLnRlc2xhLmNvbSIsImh0dHBzOi8vZmxlZXQtYXBpLnByZC5ldS52bi5jbG91ZC50ZXNsYS5jb20iLCJodHRwczovL2ZsZWV0LWF1dGgudGVzbGEuY29tL29hdXRoMi92My91c2VyaW5mbyJdLCJzY3AiOlsidmVoaWNsZV9sb2NhdGlvbiIsInZlaGljbGVfZGV2aWNlX2RhdGEiXSwiYW1yIjpbInB3ZCIsIm1mYSIsIm90cCJdLCJleHAiOjE3NTIzNzA3NzUsImlhdCI6MTc1MjM0MTk3NSwib3VfY29kZSI6Ik5BIiwibG9jYWxlIjoiZW4tQ0EiLCJhY2NvdW50X3R5cGUiOiJwZXJzb24iLCJvcGVuX3NvdXJjZSI6ZmFsc2UsImFjY291bnRfaWQiOiJhZGUxNGU2Ni1iM2Q0LTQzMDEtYmY3OC00MTMzMjQ3OWNmMTciLCJhdXRoX3RpbWUiOjE3NTIzNDE5MzJ9.bAicQ2GSzDXrwq1nQvLGqz7aeeOtbGlCy-t8Na1h9zcldNiEun8_vmgEgrTUJo2bgJZgmVA6hB4s9TbO2R_VrO20XW6xHAxZThAAGIST5mvFSg9zgIdnd04ZSGTkMghhJvbRMhoLfzerpwtNQWfWHUvcdzxMZknWYPNNMYKw2E-V_OoPnmYf89nm-NbnQUunwit33FI2iFAr3KpJLk_Cfw0d_PNirbx5qLj7UMtXdvkqk0lSXHIcVNK5Ui6k3H60t-BkETG6OiGq7N1g7w53I6eMyCL4eZEZmG8iEIY5O8MK5ov2oCLDT9NiizE5BOA_9sHt5nkQXwNQvz9wOax6RQ"
-    private val carId = "1492931462696231"
+    override fun onCreate() {
+        super.onCreate()
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        initMockProvider()
+        registerScreenOffReceiver()
+        WebSocketManager.addListener(this)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "STOP_SERVICE") {
+        if (intent?.action == ACTION_STOP_SERVICE) {
             stopSelf()
             return START_NOT_STICKY
         }
 
         startForeground(1, Carpenter.buildNotification(this))
-        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        registerMockProvider()
+       /* val lat = intent?.getDoubleExtra(EXTRA_LOCATION_LAT, Double.NaN)
+        val lng = intent?.getDoubleExtra(EXTRA_LOCATION_LNG, Double.NaN)
+        if (!lat.isNaN() && !lng.isNaN()) {
+            onNewLocation(lat, lng)
+        } else */
 
-        startMockPushLoop()
-        startTeslaFetchLoop()
+        if (WebSocketManager.latitude != null && WebSocketManager.longitude != null) {
+            onNewLocation(WebSocketManager.latitude!!, WebSocketManager.longitude!!)
+        } else {
+            Toast.makeText(this, "Cannot start service without initial location", Toast.LENGTH_SHORT).show()
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
-        mockLocation.latitude = 45.301993;
-        mockLocation.longitude = -73.262817;
-
+        startMockLoop()
         Toast.makeText(this, "Summon service started", Toast.LENGTH_SHORT).show()
         return START_STICKY
     }
 
-    private fun startMockPushLoop() {
-        serviceScope.launch {
-            while (isActive) {
-                pushMockLocation()
-                delay(1000)
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun initMockProvider() {
+        runCatching {
+            locationManager.addTestProvider(
+                PROVIDER,
+                false, false, false, false,
+                true, true, true,
+                ProviderProperties.POWER_USAGE_LOW,
+                ProviderProperties.ACCURACY_FINE
+            )
+        }
+        locationManager.setTestProviderEnabled(PROVIDER, true)
+    }
+
+    private fun removeMockProvider() {
+        locationManager.setTestProviderEnabled(PROVIDER, false)
+        locationManager.removeTestProvider(PROVIDER)
+    }
+
+    private fun registerScreenOffReceiver() {
+        screenOffReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Intent.ACTION_SCREEN_OFF) {
+                    handleScreenOff()
+                }
             }
+        }
+        registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+    }
+
+    private fun unregisterScreenOffReceiver() {
+        screenOffReceiver?.let { unregisterReceiver(it) }
+        screenOffReceiver = null
+    }
+
+    private fun handleScreenOff() {
+        serviceScope.launch {
+            WebSocketManager.close()
+            unregisterTelemetry()
+            stopSelf()
         }
     }
 
-    private fun startTeslaFetchLoop() {
+    private suspend fun unregisterTelemetry() {
+        runCatching {
+            val token = TokenStore.getAccessToken(this@SummonForegroundService) ?: return
+            TelemetryApi.service.unregisterTelemetry(token, WebSocketManager.vin.orEmpty())
+        }.onFailure { Log.e(TAG, "Unregister telemetry error", it) }
+    }
+
+    private fun startMockLoop() {
         serviceScope.launch {
             while (isActive) {
-                /*try {
-                    val ds = TeslaApi.getDriveState(token, carId)
-
-                    val A = Carpenter.Point(ds.latitude, ds.longitude)
-                    val B = Carpenter.Point(FirstFragment.lastLatInput, FirstFragment.lastLonInput)
-
-                    val metresPerDeg = 111_319.9
-                    val Rdeg = 80 / metresPerDeg
-                    val P = Carpenter.clampToCircle(A, B, Rdeg)
-
-                    mockLocation.latitude = P.x
-                    mockLocation.longitude = P.y
-                    pushMockLocation();
-                } catch (e: Exception) {
-                    Log.e("SummonService", "Failed to fetch Tesla GPS", e)
-                }*/
-                delay(5000)
+                pushMockLocation()
+                delay(MOCK_INTERVAL_MS)
             }
         }
     }
@@ -77,28 +145,37 @@ class SummonForegroundService : Service() {
             time = System.currentTimeMillis()
             elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
         }
-        locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, mockLocation)
+        locationManager.setTestProviderLocation(PROVIDER, mockLocation)
     }
 
-    private fun registerMockProvider() {
-        try {
-            locationManager.addTestProvider(
-                LocationManager.GPS_PROVIDER,
-                false, false, false, false,
-                true, true, true,
-                ProviderProperties.POWER_USAGE_LOW,
-                ProviderProperties.ACCURACY_FINE
-            )
-        } catch (_: Exception) { }
-        locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true)
+    override fun onOpen() {
+    }
+
+    override fun onNewLocation(latitude: Double, longitude: Double) {
+        val center = LatLng(latitude, longitude)
+        val path = FirstFragment.pathPoints
+        while (path.size > 1 && SphericalUtil.computeDistanceBetween(center, path.first()) <= 15.0) {
+            path.removeFirst()
+        }
+        val target = path.firstOrNull() ?: return
+        val inside = GeoHelper.clampToCircle(center, target, GEOFENCE_RADIUS_M)
+        mockLocation.latitude = inside.latitude
+        mockLocation.longitude = inside.longitude
+        pushMockLocation()
+    }
+
+    override fun onClosed() {
+    }
+
+    override fun onFailure(t: Throwable) {
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "Service destroyed")
         serviceScope.cancel()
-        locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, false)
-        locationManager.removeTestProvider(LocationManager.GPS_PROVIDER)
+        WebSocketManager.removeListener(this)
+        unregisterScreenOffReceiver()
+        removeMockProvider()
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
 }

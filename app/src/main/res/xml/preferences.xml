@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory android:title="Mocking Behavior" app:iconSpaceReserved="false">
+        <ListPreference
+            app:iconSpaceReserved="false"
+            android:key="mock_mode"
+            android:title="Mocking Mode"
+            android:summary="Selected: %s"
+            android:entries="@array/clamp_modes"
+            android:entryValues="@array/clamp_values"
+            android:defaultValue="china_na" />
+
+        <ListPreference
+            app:iconSpaceReserved="false"
+            android:key="claim_distance"
+            android:title="Claim Point Radius"
+            android:summary="Switch to next point when car is within %s"
+            android:entries="@array/claim_distances_labels"
+            android:entryValues="@array/claim_distances_values"
+            android:defaultValue="10" />
+    </PreferenceCategory>
+
+
+    <PreferenceCategory android:title="About SummonPro" app:iconSpaceReserved="false">
+        <Preference
+            app:iconSpaceReserved="false"
+            android:key="about"
+            android:title="About SummonPro"
+            android:summary="Why this app exists" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Account" app:iconSpaceReserved="false">
+        <Preference
+            app:iconSpaceReserved="false"
+            android:key="logout"
+            android:title="Log Out"
+            android:summary="Erase stored credentials" />
+    </PreferenceCategory>
+</PreferenceScreen>

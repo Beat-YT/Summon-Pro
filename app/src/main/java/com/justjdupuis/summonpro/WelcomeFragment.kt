@@ -11,6 +11,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.justjdupuis.summonpro.databinding.FragmentWelcomeBinding
+import java.util.UUID
 
 class WelcomeFragment : Fragment() {
     private var _binding: FragmentWelcomeBinding? = null
@@ -27,15 +28,19 @@ class WelcomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.loginButton.setOnClickListener { view ->
-            val colorParams = CustomTabColorSchemeParams.Builder()
-                .setNavigationBarColor(0xFFFFFFFF.toInt())
-                .setNavigationBarDividerColor(0xFFFFFFFF.toInt())
+            val authUrl = Uri.parse("https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/authorize").buildUpon()
+                .appendQueryParameter("response_type", "code")
+                .appendQueryParameter("client_id", "43b9cc42-e27a-4da7-a7e2-6e93b814dd3b")
+                .appendQueryParameter("redirect_uri", "com.justjdupuis.summonpro://login/tesla-auth")
+                .appendQueryParameter("scope", "openid offline_access vehicle_location vehicle_device_data")
+                .appendQueryParameter("state", UUID.randomUUID().toString())
+                .appendQueryParameter("require_requested_scopes", "true")
+                .appendQueryParameter("show_keypair_step", "true")
                 .build()
 
-            val authUrl = Uri.parse("https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/authorize?response_type=code&client_id=43b9cc42-e27a-4da7-a7e2-6e93b814dd3b&redirect_uri=com.justjdupuis.summonpro://login/tesla-auth&scope=openid+offline_access+vehicle_location+vehicle_device_data")
             val customTabsIntent = CustomTabsIntent.Builder()
-                .setDefaultColorSchemeParams(colorParams)
                 .build()
+
             customTabsIntent.launchUrl(requireContext(), authUrl)
         }
     }

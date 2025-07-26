@@ -8,7 +8,7 @@ import retrofit2.http.Header
 import retrofit2.http.Path
 
 object TeslaApi {
-    private const val BASE_URL = "http://192.168.2.17:8080/"
+    private const val BASE_URL = "https://gate.summon-pro.cc/api/tesla/"
 
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
@@ -16,12 +16,12 @@ object TeslaApi {
         .build()
 
     interface Service {
-        @GET("tesla/api/1/vehicles")
+        @GET("vehicles")
         suspend fun getVehicleList(
             @Header("Authorization") token: String,
         ): VehicleListResponse
 
-        @GET("tesla/api/1/vehicles/{vehicle_tag}")
+        @GET("vehicles/{vehicle_tag}")
         suspend fun getVehicleInfo(
             @Header("Authorization") token: String,
             @Path("vehicle_tag") vehicleTag: String,
@@ -30,12 +30,11 @@ object TeslaApi {
 
     val service: Service = retrofit.create(Service::class.java)
 
+    data class VehicleResponse(val response: Vehicle)
     data class VehicleListResponse(
         val response: List<Vehicle>,
         val count: Int
     )
-
-    data class VehicleResponse(val response: Vehicle)
 
     data class Vehicle(
         @SerializedName("id") val id: Long,
