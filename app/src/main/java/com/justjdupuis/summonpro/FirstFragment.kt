@@ -29,6 +29,8 @@ import com.justjdupuis.summonpro.api.WebSocketManager
 import com.justjdupuis.summonpro.databinding.FragmentFirstBinding
 import com.justjdupuis.summonpro.utils.Carpenter
 import com.justjdupuis.summonpro.utils.TokenStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -208,14 +210,10 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    override fun onPause() {
-        super.onPause()
 
         if (!SummonForegroundService.isRunning && WebSocketManager.isConnected()) {
-            lifecycleScope.launch {
-                WebSocketManager.close()
+            WebSocketManager.close()
+            CoroutineScope(Dispatchers.IO).launch {
                 unregisterTelemetry()
             }
         }
