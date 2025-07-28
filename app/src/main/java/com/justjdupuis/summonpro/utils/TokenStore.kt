@@ -24,7 +24,12 @@ object TokenStore {
     fun getAccessToken(ctx: Context): String? {
         val p = prefs(ctx)
         val expiresAt = p.getLong(KEY_EXPIRES, 0)
-        return if (System.currentTimeMillis() >= expiresAt) null else p.getString(KEY_ACCESS, null)
+        val earlyOffset = 4 * 60 * 60 * 1000L
+        return if (System.currentTimeMillis() >= (expiresAt - earlyOffset)) {
+            null
+        } else {
+            p.getString(KEY_ACCESS, null)
+        }
     }
 
     fun getRefreshToken(ctx: Context): String? =

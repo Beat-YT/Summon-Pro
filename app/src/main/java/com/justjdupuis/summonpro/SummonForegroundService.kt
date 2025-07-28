@@ -13,10 +13,12 @@ import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import androidx.navigation.findNavController
+import androidx.preference.PreferenceManager
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.SphericalUtil
 import com.justjdupuis.summonpro.api.TelemetryApi
 import com.justjdupuis.summonpro.api.WebSocketManager
+import com.justjdupuis.summonpro.models.TelemetryConn
 import com.justjdupuis.summonpro.utils.Carpenter
 import com.justjdupuis.summonpro.utils.GeoHelper
 import com.justjdupuis.summonpro.utils.TokenStore
@@ -33,10 +35,9 @@ class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListen
     companion object {
         internal var isRunning = false
         private const val TAG = "SummonForegroundService"
-        private const val ACTION_STOP_SERVICE = "com.justjdupuis.summonpro.action.STOP_SERVICE"
         private const val PROVIDER = LocationManager.GPS_PROVIDER
         private const val MOCK_INTERVAL_MS = 500L
-        private const val GEOFENCE_RADIUS_M = 80.0
+        const val ACTION_STOP_SERVICE = "com.justjdupuis.summonpro.action.STOP_SERVICE"
         const val EXTRA_LOCATION_LAT = "extra_location_lat"
         const val EXTRA_LOCATION_LNG = "extra_location_lng"
     }
@@ -45,6 +46,9 @@ class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListen
     private lateinit var locationManager: LocationManager
     private val mockLocation = Location(PROVIDER)
     private var screenOffReceiver: BroadcastReceiver? = null
+
+    private var geofenceRadius = 80.0
+    private var distanceToClaim = 20.0
 
     override fun onCreate() {
         super.onCreate()
@@ -60,24 +64,22 @@ class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListen
             return START_NOT_STICKY
         }
 
-        isRunning = true;
-        startForeground(1, Carpenter.buildNotification(this))
-       /* val lat = intent?.getDoubleExtra(EXTRA_LOCATION_LAT, Double.NaN)
-        val lng = intent?.getDoubleExtra(EXTRA_LOCATION_LNG, Double.NaN)
-        if (!lat.isNaN() && !lng.isNaN()) {
-            onNewLocation(lat, lng)
-        } else */
 
-        if (WebSocketManager.latitude != null && WebSocketManager.longitude != null) {
-            onNewLocation(WebSocketManager.latitude!!, WebSocketManager.longitude!!)
-        } else {
-            Toast.makeText(this, "Cannot start service without initial location", Toast.LENGTH_SHORT).show()
-            stopSelf()
-            return START_NOT_STICKY
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        distanceToClaim = prefs.getString("claim_distance", "20")?.toDoubleOrNull() ?: 20.0
+        geofenceRadius = when (prefs.getString("mock_mode", "china_na")) {
+            "global" -> 5.8
+            "china_na" -> 80.0
+            else -> 85.0
         }
+
+        startForeground(1, Carpenter.buildNotification(this))
+        onNewLocation(WebSocketManager.latitude!!, WebSocketManager.longitude!!)
 
         startMockLoop()
         Toast.makeText(this, "Summon service started", Toast.LENGTH_SHORT).show()
+
+        isRunning = true;
         return START_STICKY
     }
 
@@ -156,14 +158,27 @@ class SummonForegroundService : Service(), WebSocketManager.WebSocketEventListen
     override fun onNewLocation(latitude: Double, longitude: Double) {
         val center = LatLng(latitude, longitude)
         val path = FirstFragment.pathPoints
-        while (path.size > 1 && SphericalUtil.computeDistanceBetween(center, path.first()) <= 15.0) {
+        while (path.size > 1 && SphericalUtil.computeDistanceBetween(
+                center,
+                path.first()
+            ) <= distanceToClaim
+        ) {
             path.removeFirst()
         }
+
         val target = path.firstOrNull() ?: return
-        val inside = GeoHelper.clampToCircle(center, target, GEOFENCE_RADIUS_M)
+        val inside = GeoHelper.clampToCircle(center, target, geofenceRadius)
         mockLocation.latitude = inside.latitude
         mockLocation.longitude = inside.longitude
         pushMockLocation()
+    }
+
+    override fun onNewHeading(heading: Double) {
+    }
+
+    override fun onConnectivityUpdate(connectivity: TelemetryConn) {
+        // TODO update the user with a notification
+
     }
 
     override fun onClosed() {

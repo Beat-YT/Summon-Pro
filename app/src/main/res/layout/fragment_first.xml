@@ -6,6 +6,40 @@
     android:layout_height="match_parent"
     tools:context=".FirstFragment">
 
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/connectionStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:orientation="horizontal"
+        android:background="@drawable/status_bg"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_margin="12dp">
+
+        <View
+            android:id="@+id/statusDot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/status_circle_red" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:text="Disconnected"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnUndo"
         android:layout_width="wrap_content"
@@ -15,11 +49,5 @@
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent" />
-
-    <fragment
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

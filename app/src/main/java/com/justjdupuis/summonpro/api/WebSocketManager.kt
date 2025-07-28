@@ -3,6 +3,7 @@ package com.justjdupuis.summonpro.api
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
+import com.justjdupuis.summonpro.models.TelemetryConn
 import com.justjdupuis.summonpro.models.TelemetryV
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,8 @@ object WebSocketManager {
     interface WebSocketEventListener {
         fun onOpen()
         fun onNewLocation(latitude: Double, longitude: Double)
+        fun onNewHeading(heading: Double)
+        fun onConnectivityUpdate(connectivity: TelemetryConn)
         fun onClosed()
         fun onFailure(t: Throwable)
     }
@@ -92,7 +95,20 @@ object WebSocketManager {
                         listeners.forEach { it.get()?.onNewLocation(location.latitude, location.longitude) }
                     }
 
+                    val heading = telemetry.data
+                        .firstOrNull { it.key == "GpsHeading" }
+                        ?.value
+                        ?.doubleValue
+
+                    if (heading != null) {
+                        listeners.forEach { it.get()?.onNewHeading(heading) }
+                    }
+
                     vin = telemetry.vin;
+                } else if (topic == "connectivity" || topic == "cached_connectivity") {
+                    val contentJson = root.getJSONObject("content").toString()
+                    val connectivity = Gson().fromJson(contentJson, TelemetryConn::class.java)
+                    listeners.forEach { it.get()?.onConnectivityUpdate(connectivity) }
                 }
             }
 
@@ -121,8 +137,12 @@ object WebSocketManager {
         webSocket = null
         client?.dispatcher?.executorService?.shutdown()
         client = null
-        listeners.clear()
         stopWatchdog()
+    }
+
+    fun shutdown() {
+        close()
+        listeners.clear()
     }
 
     fun isConnected(): Boolean = webSocket != null
@@ -136,12 +156,16 @@ object WebSocketManager {
     }
 
     private fun reconnect(url: String, token: String) {
-        // You can implement backoff, retry count, etc.
         try {
             webSocket?.close(4001, "reconnecting")
-        } catch(e: Exception) {}
+        } catch (e: Exception) {}
+
         webSocket = null
-        connect(url, token)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(3000) // 3-second delay before reconnecting
+            connect(url, token)
+        }
     }
 
     private fun startWatchdog(timeoutMs: Long = 25000L) {

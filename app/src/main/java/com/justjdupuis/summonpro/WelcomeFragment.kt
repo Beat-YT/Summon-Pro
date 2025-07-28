@@ -6,14 +6,22 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.navigation.NavOptions
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.navOptions
 import com.justjdupuis.summonpro.databinding.FragmentWelcomeBinding
+import com.justjdupuis.summonpro.utils.TokenStore
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class WelcomeFragment : Fragment() {
+    companion object {
+        private const val CLIENT_ID = "43b9cc42-e27a-4da7-a7e2-6e93b814dd3b"
+        private const val REDIRECT_URI = "com.justjdupuis.summonpro://login/tesla-auth"
+        private const val SCOPES = "openid offline_access vehicle_location vehicle_device_data"
+    }
+
     private var _binding: FragmentWelcomeBinding? = null
     private val binding get() = _binding!!
     override fun onCreateView(
@@ -24,15 +32,34 @@ class WelcomeFragment : Fragment() {
         return binding.root
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        lifecycleScope.launch {
+            val token = TokenManager.getValidAccessToken(requireContext())
+            if (token != null) {
+                findNavController().navigate(
+                    R.id.VehicleListFragment,
+                    null,
+                    navOptions {
+                        popUpTo(R.id.nav_graph) {
+                            inclusive = true
+                        }
+                    }
+                )
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.loginButton.setOnClickListener { view ->
             val authUrl = Uri.parse("https://fleet-auth.prd.vn.cloud.tesla.com/oauth2/v3/authorize").buildUpon()
                 .appendQueryParameter("response_type", "code")
-                .appendQueryParameter("client_id", "43b9cc42-e27a-4da7-a7e2-6e93b814dd3b")
-                .appendQueryParameter("redirect_uri", "com.justjdupuis.summonpro://login/tesla-auth")
-                .appendQueryParameter("scope", "openid offline_access vehicle_location vehicle_device_data")
+                .appendQueryParameter("client_id", CLIENT_ID)
+                .appendQueryParameter("redirect_uri", REDIRECT_URI)
+                .appendQueryParameter("scope", SCOPES)
                 .appendQueryParameter("state", UUID.randomUUID().toString())
                 .appendQueryParameter("require_requested_scopes", "true")
                 .appendQueryParameter("show_keypair_step", "true")
@@ -43,5 +70,10 @@ class WelcomeFragment : Fragment() {
 
             customTabsIntent.launchUrl(requireContext(), authUrl)
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

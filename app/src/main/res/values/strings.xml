@@ -2,7 +2,7 @@
     <string name="app_name">Summon Pro</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
+    <string name="first_fragment_label">Map</string>
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
@@ -18,17 +18,15 @@
     </string-array>
 
     <string-array name="claim_distances_labels">
-        <item>2 meters</item>
         <item>5 meters</item>
         <item>10 meters</item>
         <item>15 meters</item>
-        <item>20 meters</item>
+        <item>20 meters (recommended)</item>
         <item>25 meters</item>
         <item>30 meters</item>
     </string-array>
 
     <string-array name="claim_distances_values">
-        <item>2</item>
         <item>5</item>
         <item>10</item>
         <item>15</item>

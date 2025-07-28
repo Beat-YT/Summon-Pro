@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
+import android.location.provider.ProviderProperties
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.maps.model.LatLng
@@ -36,6 +38,22 @@ object Carpenter {
         }
     }
 
+    fun isSetAsMockProvider(ctx: Context): Boolean {
+        return try {
+            val locationManager = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            locationManager.addTestProvider(
+                LocationManager.GPS_PROVIDER,
+                false, false, false, false,
+                true, true, true,
+                ProviderProperties.POWER_USAGE_LOW,
+                ProviderProperties.ACCURACY_FINE
+            )
+            true
+        } catch (ex: Exception) {
+            false
+        }
+    }
+
     data class ApiError(
         @SerializedName("error_message") val message: String,
         @SerializedName("error_code") val code: String
@@ -53,7 +71,7 @@ object Carpenter {
 
     fun buildNotification(context: Context): Notification {
         val stopIntent = Intent(context, SummonForegroundService::class.java).apply {
-            action = "STOP_SERVICE"
+            action = SummonForegroundService.ACTION_STOP_SERVICE
         }
 
         val stopPendingIntent = PendingIntent.getService(
@@ -69,7 +87,7 @@ object Carpenter {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .addAction(0, "Stop", stopPendingIntent)
-            .setSmallIcon(R.drawable.ic_autopilot)
+            .setSmallIcon(R.drawable.ic_wheel)
             .build()
     }
 

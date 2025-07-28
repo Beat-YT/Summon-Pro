@@ -1,14 +1,19 @@
 package com.justjdupuis.summonpro
 
+import TokenManager
 import android.graphics.Rect
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.DialogFragment
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.navOptions
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
+
 
 class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -67,18 +72,228 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         logoutPref?.setOnPreferenceClickListener {
-            AlertDialog.Builder(context)
-                .setTitle("Unpair?")
-                .setMessage("This will erase your stored credentials. To remove the key from your Tesla, use the Tesla app.")
-                .setPositiveButton("Unpair") { _, _ ->
-                    /*val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-                    prefs.edit().clear().apply()
-                    Toast.makeText(context, "Unpaired.", Toast.LENGTH_SHORT).show()
-                    findNavController().navigate(R.id.LoginFragment)*/
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+            TokenManager.clearSession(requireContext())
+            replaceScreenLogin()
             true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
+    }
+
+    private fun replaceScreenLogin() {
+        findNavController().navigate(
+            R.id.WelcomeFragment,
+            null,
+            navOptions {
+                popUpTo(R.id.nav_graph) {
+                    inclusive = true
+                }
+            }
+        )
     }
 }

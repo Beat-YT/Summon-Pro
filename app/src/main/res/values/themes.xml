@@ -1,8 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
+    <color name="iconTint">#000000</color>
+    <color name="textPrimary">#000000</color>
+    <color name="textSecondary">#666666</color>
+
     <style name="Base.Theme.SummonPro" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
     <style name="Theme.SummonPro" parent="Base.Theme.SummonPro" />

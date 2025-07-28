@@ -9,11 +9,15 @@ import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -27,7 +31,9 @@ import com.google.android.gms.maps.model.PolylineOptions
 import com.justjdupuis.summonpro.api.TelemetryApi
 import com.justjdupuis.summonpro.api.WebSocketManager
 import com.justjdupuis.summonpro.databinding.FragmentFirstBinding
+import com.justjdupuis.summonpro.models.TelemetryConn
 import com.justjdupuis.summonpro.utils.Carpenter
+import com.justjdupuis.summonpro.utils.LocationStore
 import com.justjdupuis.summonpro.utils.TokenStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +50,7 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
     private lateinit var map: GoogleMap
 
     private var vehicleMarker: Marker? = null
-    private var targetMarker: Marker? = null
+    private var isConnected: Boolean = false
 
 
     private val markerPoints = mutableListOf<Marker>()
@@ -66,8 +72,19 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
     ): View? {
         _binding = FragmentFirstBinding.inflate(inflater, container, false)
         permMgr = PermissionManager(this)
+
+        requireActivity().onBackPressedDispatcher.addCallback(requireActivity()) {
+            if (SummonForegroundService.isRunning) {
+                Toast.makeText(requireContext(), "Stop Summon Pro before leaving.", Toast.LENGTH_SHORT).show()
+            } else {
+                isEnabled = false
+                findNavController().popBackStack()
+            }
+        }
+
         return binding.root
     }
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -80,6 +97,12 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
 
         WebSocketManager.vin = vin
         binding.btnUndo.setOnClickListener {
+            if (SummonForegroundService.isRunning) {
+                Toast.makeText(requireContext(), "Stop Summon Service to remove path", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+
             if (pathPoints.isNotEmpty()) {
                 pathPoints.removeLast()
                 polyline?.points = pathPoints
@@ -105,6 +128,7 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
         lifecycleScope.launch {
             try {
                 val registrationService = TelemetryApi.service.registerTelemetry(token, vin)
+                WebSocketManager.close()
                 WebSocketManager.connect(
                     registrationService.serviceUrl,
                     registrationService.serviceToken
@@ -145,24 +169,25 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
             }
         }
 
+        val latitude = LocationStore.getLatitude(requireContext()) ?: 45.5017
+        val longitude = LocationStore.getLongitude(requireContext()) ?: -73.5673
+        val heading = LocationStore.getHeading(requireContext()) ?: 0.5
 
-        // move camera somewhere:
-        val defaultLoc = LatLng(45.5017, -73.5673)
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLoc, 16f))
+        // move camera somewhere
+        val defaultLoc = LatLng(latitude, longitude)
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLoc, 18f))
 
-        val orig = BitmapFactory.decodeResource(resources, R.drawable.vehicle_mapmarker_online)
-
+        val orig = BitmapFactory.decodeResource(resources, R.drawable.vehicle_mapmarker_stale)
         val size = dpToPx(48)
         val smallBmp = Bitmap.createScaledBitmap(orig, size, size, false)
-
         val icon = BitmapDescriptorFactory.fromBitmap(smallBmp)
-        val pt = LatLng(45.5017, -73.5673)
+
         vehicleMarker = map.addMarker(
             MarkerOptions()
-                .position(pt)
+                .position(defaultLoc)
                 .icon(icon)
                 .anchor(0.5f, 0.5f)
-                .rotation(213f)
+                .rotation(heading.toFloat())
                 .flat(true)
         )
     }
@@ -225,26 +250,95 @@ class FirstFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMapClickListen
     }
 
     override fun onStop() {
-        WebSocketManager.removeListener(this)
         super.onStop()
+        WebSocketManager.removeListener(this)
     }
 
     override fun onOpen() {
+        requireActivity().runOnUiThread {
+            binding.statusDot.background =
+                ContextCompat.getDrawable(requireContext(), R.drawable.status_circle_yellow)
+            binding.statusText.text = "Connecting"
+        }
     }
 
     override fun onNewLocation(latitude: Double, longitude: Double) {
         val latLng = LatLng(latitude, longitude)
 
+        if (!SummonForegroundService.isRunning) {
+            LocationStore.saveLocation(requireContext(), latitude, longitude)
+        }
+
+        isConnected = true
         requireActivity().runOnUiThread {
             vehicleMarker?.position = latLng
-            map.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+            if (!isConnected) {
+                map.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+                updateVehicleIcon(true)
+            }
+
+            binding.statusDot.background = ContextCompat.getDrawable(requireContext(), R.drawable.status_circle_green)
+            binding.statusText.text = "Connected"
+        }
+    }
+
+    override fun onNewHeading(heading: Double) {
+        requireActivity().runOnUiThread {
+            vehicleMarker?.rotation = heading.toFloat()
+        }
+
+        if (!SummonForegroundService.isRunning) {
+            LocationStore.saveHeading(requireContext(), heading)
+        }
+    }
+
+    override fun onConnectivityUpdate(connectivity: TelemetryConn) {
+        isConnected = connectivity.status == "CONNECTED"
+
+        requireActivity().runOnUiThread {
+            updateVehicleIcon(isConnected)
+
+            val statusDrawable = if (isConnected) {
+                R.drawable.status_circle_green
+            } else {
+                R.drawable.status_circle_red
+            }
+
+            binding.statusDot.background = ContextCompat.getDrawable(requireContext(), statusDrawable)
+            binding.statusText.text = if (isConnected) "Connected" else "Disconnected"
         }
     }
 
     override fun onClosed() {
+        requireActivity().runOnUiThread {
+            binding.statusDot.background =
+                ContextCompat.getDrawable(requireContext(), R.drawable.status_circle_red)
+            binding.statusText.text = "Disconnected"
+            isConnected = false
+            updateVehicleIcon(false)
+        }
     }
 
     override fun onFailure(t: Throwable) {
+        requireActivity().runOnUiThread {
+            binding.statusDot.background =
+                ContextCompat.getDrawable(requireContext(), R.drawable.status_circle_red)
+            binding.statusText.text = "Failure"
+            isConnected = false
+            updateVehicleIcon(false)
+        }
+    }
+
+    private fun updateVehicleIcon(online: Boolean) {
+        val orig = BitmapFactory.decodeResource(
+            resources,
+            if (online) R.drawable.vehicle_mapmarker_online else R.drawable.vehicle_mapmarker_stale
+        )
+
+        val size = dpToPx(48)
+        val smallBmp = Bitmap.createScaledBitmap(orig, size, size, false)
+        val icon = BitmapDescriptorFactory.fromBitmap(smallBmp)
+        vehicleMarker?.setIcon(icon)
     }
 
     private suspend fun unregisterTelemetry() {

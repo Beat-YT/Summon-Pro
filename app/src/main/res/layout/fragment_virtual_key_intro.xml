@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/telemetryLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,11 +9,12 @@
     android:padding="24dp">
 
     <ImageView
+        app:tint="@color/iconTint"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
         android:contentDescription="Key Icon"
-        android:src="@drawable/ic_autopilot" />
+        android:src="@drawable/steering_wheel" />
 
     <TextView
         android:layout_width="match_parent"
@@ -27,14 +29,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="SummonPro needs a Tesla Virtual Key to stream live GPS from the car telemetry."
+        android:text="Summon Pro needs a Tesla Virtual Key to stream live GPS from the car telemetry."
         android:textSize="16sp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Without telemetry, SummonPro cannot function — it needs to know the vehicle’s location to enable Summon anywhere."
+        android:text="Without telemetry, Summon Pro cannot function — it needs to know the vehicle’s location to enable Summon anywhere."
         android:textColor="#B00020"
         android:textSize="16sp"
         android:textStyle="bold" />
@@ -43,7 +45,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Your are always in control. The key can be removed anytime on the Locks screen on the vehicle. "
+        android:text="Your are always in control. The key can be removed anytime on the Locks menu on the vehicle. "
         android:textSize="15sp" />
 
     <TextView

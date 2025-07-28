@@ -17,7 +17,7 @@
             android:summary="Switch to next point when car is within %s"
             android:entries="@array/claim_distances_labels"
             android:entryValues="@array/claim_distances_values"
-            android:defaultValue="10" />
+            android:defaultValue="20" />
     </PreferenceCategory>
 
 

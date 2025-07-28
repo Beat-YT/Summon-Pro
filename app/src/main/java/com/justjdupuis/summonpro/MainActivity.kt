@@ -1,6 +1,6 @@
 package com.justjdupuis.summonpro
 
-import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -18,7 +18,6 @@ import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.navOptions
 import com.google.android.material.appbar.MaterialToolbar
@@ -34,6 +33,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
+import android.provider.Settings
+import android.widget.Toast
+import android.text.SpannableString
+import android.text.method.LinkMovementMethod
+import android.text.util.Linkify
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
 
@@ -70,8 +75,27 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
 
         binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "YOOOOOOO", Snackbar.LENGTH_LONG)
+            val isMockProvider = Carpenter.isSetAsMockProvider(this)
+            if (!isMockProvider) {
+                showMockLocationDialog()
+                return@setOnClickListener
+            }
+
+
+            if (FirstFragment.pathPoints.isEmpty()) {
+                Snackbar.make(view, "No path points available — Tap on map to set a target location", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show()
+                return@setOnClickListener
+            }
+
+            if (WebSocketManager.latitude == null || WebSocketManager.longitude == null) {
+                Snackbar.make(view, "Cannot start service without initial location", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show()
+                return@setOnClickListener
+            }
+
+            Snackbar.make(view, "YOOOOOOO", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show()
 
             Intent(this, SummonForegroundService::class.java).also { intent ->
                 ContextCompat.startForegroundService(this, intent)
@@ -93,9 +117,45 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    private fun showMockLocationDialog() {
+        val message =
+            """
+            To enable Summon Pro, you need to select mock location:
+            
+            1. Open Settings → Developer options
+            2. Scroll or search for “Select mock location app”
+            3. Choose “Summon Pro” from the list
+            
+            If you don’t see Developer options:
+            - Go to Settings > About phone
+            - Tap “Build number” 7 times to unlock it
+            
+            Need help? Visit:
+            https://summon-pro.cc/faq
+            """.trimIndent()
+
+        val spannable = SpannableString(message)
+        Linkify.addLinks(spannable, Linkify.WEB_URLS)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Almost there…")
+            .setMessage(spannable)
+            .setPositiveButton("Go to Settings") { _, _ ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                try {
+                    startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(this, "Developer options not enabled", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+
+        dialog.show()
+
+        // Now force link clicks to work
+        (dialog.findViewById<TextView>(android.R.id.message))?.movementMethod =
+            LinkMovementMethod.getInstance()
     }
 
     private fun handleDeepLink(intent: Intent?) {
@@ -171,12 +231,16 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_settings -> {
-                val navController = findNavController(R.id.nav_host_fragment_content_main)
-                navController.navigate(R.id.SettingsFragment)
+                SettingsDialogFragment().show(supportFragmentManager, "SettingsDialog")
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment_content_main)
+        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
     override fun onResume() {
@@ -187,22 +251,23 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment_content_main)
-                as? NavHostFragment ?: return
+        val navController = findNavController(R.id.nav_host_fragment_content_main)
 
-        val navController = navHostFragment.navController
         val currentDest = navController.currentDestination?.id
-
         if (currentDest == R.id.FirstFragment) {
-            navController.navigate(
-                R.id.action_FirstFragment_to_VehicleListFragment,
-                null,
-                navOptions {
-                    popUpTo(R.id.FirstFragment) {
-                        inclusive = true
+            try {
+                navController.navigate(
+                    R.id.action_FirstFragment_to_VehicleListFragment,
+                    null,
+                    navOptions {
+                        popUpTo(R.id.FirstFragment) {
+                            inclusive = true
+                        }
                     }
-                }
-            )
+                )
+            } catch (e: IllegalArgumentException) {
+                Log.w("MainActivity", "Navigation failed: ${e.message}")
+            }
         }
     }
 
@@ -211,7 +276,7 @@ class MainActivity : AppCompatActivity() {
 
         if (!SummonForegroundService.isRunning && WebSocketManager.isConnected()) {
             lifecycleScope.launch {
-                WebSocketManager.close()
+                WebSocketManager.shutdown()
                 unregisterTelemetry()
             }
         }
@@ -221,7 +286,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (WebSocketManager.isConnected()) {
-            WebSocketManager.close()
+            WebSocketManager.shutdown()
             CoroutineScope(Dispatchers.IO).launch {
                 unregisterTelemetry()
             }

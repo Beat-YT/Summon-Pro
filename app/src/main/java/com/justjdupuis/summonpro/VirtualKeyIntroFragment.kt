@@ -52,7 +52,7 @@ class VirtualKeyIntroFragment : Fragment() {
             return
         }
         val displayName = arguments?.getString("displayName") ?: Carpenter.decodeTeslaVin(vin)
-        validateTeslaKeyPair(vin, displayName)
+        validateTeslaKeyPair(vin, displayName, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -71,7 +71,7 @@ class VirtualKeyIntroFragment : Fragment() {
         }
         
         binding.btnContinue.setOnClickListener {
-            val url = "https://www.tesla.com/_ak/summon-pro.cc"
+            val url = "https://www.tesla.com/_ak/summon-pro.cc?vin=$vin"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
                 setPackage("com.teslamotors.tesla")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -92,7 +92,7 @@ class VirtualKeyIntroFragment : Fragment() {
         }
     }
 
-    private fun validateTeslaKeyPair(vin: String, name: String) {
+    private fun validateTeslaKeyPair(vin: String, name: String, prompt: Boolean = true) {
         val token = TokenStore.getAccessToken(requireContext())
         if (token == null) {
             Toast.makeText(requireContext(), "No access token found", Toast.LENGTH_SHORT).show()
@@ -103,20 +103,24 @@ class VirtualKeyIntroFragment : Fragment() {
             try {
                 val telemetryState = TelemetryApi.service.getTelemetryInfo(token, vin)
                 if (telemetryState.limitReached) {
-                    showAlert(
-                        "Telemetry Limit Reached",
-                        "This vehicle has reached the maximum number of telemetry configurations allowed by Tesla (3 per vehicle). You cannot add new streaming access at this time.\n" +
-                                "\n" +
-                                "Please remove an existing telemetry app from your Tesla before trying again."
-                    )
+                    if (prompt) {
+                        showAlert(
+                            "Telemetry Limit Reached",
+                            "This vehicle has reached the maximum number of telemetry configurations allowed by Tesla (3 per vehicle). You cannot add new streaming access at this time.\n" +
+                                    "\n" +
+                                    "Please remove an existing telemetry app from your Tesla before trying again."
+                        )
+                    }
                     return@launch
                 }
 
                 if (!telemetryState.keyPaired) {
-                    showAlert(
-                        "Key Not Present",
-                        "The virtual key doesn’t seem to be added.\n\nMake sure you selected the vehicle \"$name\" when pairing. The key must be linked to the same car you picked in SummonPro. If you're unsure, try re-pairing."
-                    )
+                    if (prompt) {
+                        showAlert(
+                            "Key Not Present",
+                            "The virtual key for \"$name\" couldn’t be found.\n\nMake sure you selected the correct vehicle when pairing and are signed into the same Tesla account. The key must be linked to the car you chose in SummonPro.\n\nIf you're not sure, try re-pairing."
+                        )
+                    }
                     return@launch
                 }
 

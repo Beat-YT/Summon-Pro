@@ -16,13 +16,23 @@ data class TelemetryV (
     val isResend: Boolean
 )
 
+data class TelemetryConn (
+    val vin: String,
+    val connectionID: String,
+    val status: String,
+    val createdAt: String,
+    val networkInterface: String
+)
+
+
 data class Datum (
     val key: String,
     val value: Value
 )
 
 data class Value (
-    val locationValue: LocationValue
+    val locationValue: LocationValue?,
+    val doubleValue: Double?
 )
 
 data class LocationValue (
