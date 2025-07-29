@@ -39,6 +39,7 @@ import android.text.SpannableString
 import android.text.method.LinkMovementMethod
 import android.text.util.Linkify
 import android.widget.TextView
+import com.justjdupuis.summonpro.api.UpdateCheck
 
 class MainActivity : AppCompatActivity() {
 
@@ -245,6 +246,23 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        lifecycleScope.launch {
+            val updateInfo = UpdateCheck.needUpdate(this@MainActivity)
+            if (updateInfo != null) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(updateInfo.title)
+                    .setMessage(updateInfo.changelog)
+                    .setCancelable(false)
+                    .setPositiveButton("Update") { _, _ ->
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.updateUrl))
+                        startActivity(intent)
+                        finish() // block usage until updated
+                    }
+                    .show()
+                return@launch // prevent continuing
+            }
+        }
 
         if (SummonForegroundService.isRunning) {
             Log.d("MainActivity", "onResume — Summon service is running — stay on FirstFragment")

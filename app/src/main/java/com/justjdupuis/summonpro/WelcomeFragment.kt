@@ -1,12 +1,22 @@
 package com.justjdupuis.summonpro
 
+import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.navOptions
@@ -32,25 +42,6 @@ class WelcomeFragment : Fragment() {
         return binding.root
     }
 
-    override fun onResume() {
-        super.onResume()
-
-        lifecycleScope.launch {
-            val token = TokenManager.getValidAccessToken(requireContext())
-            if (token != null) {
-                findNavController().navigate(
-                    R.id.VehicleListFragment,
-                    null,
-                    navOptions {
-                        popUpTo(R.id.nav_graph) {
-                            inclusive = true
-                        }
-                    }
-                )
-            }
-        }
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -69,6 +60,57 @@ class WelcomeFragment : Fragment() {
                 .build()
 
             customTabsIntent.launchUrl(requireContext(), authUrl)
+        }
+
+        val fullText = "By continuing, you agree to the Terms and Conditions"
+        val spannable = SpannableString(fullText)
+
+        val termsStart = fullText.indexOf("Terms and Conditions")
+        val termsEnd = termsStart + "Terms and Conditions".length
+
+        val clickableSpan = object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                val url = "https://summon-pro.cc/terms"
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                widget.context.startActivity(intent)
+            }
+
+            override fun updateDrawState(ds: TextPaint) {
+                super.updateDrawState(ds)
+                ds.isUnderlineText = true // underline
+                ds.color = ContextCompat.getColor(requireContext(), R.color.textSecondary) // or any color
+            }
+        }
+
+        spannable.setSpan(clickableSpan, termsStart, termsEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        binding.termsText.text = spannable
+        binding.termsText.movementMethod = LinkMovementMethod.getInstance()
+        binding.termsText.highlightColor = Color.TRANSPARENT
+
+        binding.termsText.setOnClickListener {
+            val url = "https://summon-pro.cc/terms"
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(intent)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        lifecycleScope.launch {
+            val token = TokenManager.getValidAccessToken(requireContext())
+            if (token != null) {
+                findNavController().navigate(
+                    R.id.VehicleListFragment,
+                    null,
+                    navOptions {
+                        popUpTo(R.id.nav_graph) {
+                            inclusive = true
+                        }
+                    }
+                )
+            }
         }
     }
 

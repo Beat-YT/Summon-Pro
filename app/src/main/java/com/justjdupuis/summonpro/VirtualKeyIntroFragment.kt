@@ -38,23 +38,6 @@ class VirtualKeyIntroFragment : Fragment() {
         return binding.root
     }
 
-    override fun onResume() {
-        super.onResume()
-
-        if (firstResume) {
-            firstResume = false
-            return // ignore the first time
-        }
-
-        val vin = arguments?.getString("vin")
-        if (vin == null) {
-            Toast.makeText(requireContext(), "Error VIN not provided", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val displayName = arguments?.getString("displayName") ?: Carpenter.decodeTeslaVin(vin)
-        validateTeslaKeyPair(vin, displayName, false)
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val vin = arguments?.getString("vin")
         if (vin == null) {
@@ -90,6 +73,23 @@ class VirtualKeyIntroFragment : Fragment() {
         binding.iAddedKeyAct.setOnClickListener {
             validateTeslaKeyPair(vin, displayName)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (firstResume) {
+            firstResume = false
+            return // ignore the first time
+        }
+
+        val vin = arguments?.getString("vin")
+        if (vin == null) {
+            Toast.makeText(requireContext(), "Error VIN not provided", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val displayName = arguments?.getString("displayName") ?: Carpenter.decodeTeslaVin(vin)
+        validateTeslaKeyPair(vin, displayName, false)
     }
 
     private fun validateTeslaKeyPair(vin: String, name: String, prompt: Boolean = true) {

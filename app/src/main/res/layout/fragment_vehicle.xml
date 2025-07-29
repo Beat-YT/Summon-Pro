@@ -26,4 +26,19 @@
         android:visibility="gone"
         tools:listitem="@layout/fragment_vehicle_list" />
 
+    <TextView
+        android:id="@+id/support_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enjoy Summon Pro? Help me cover the costs by buying me a coffee ☕"
+        android:textColor="?android:attr/textColorSecondary"
+        android:autoLink="web"
+        android:layout_gravity="bottom|center_horizontal"
+        android:padding="17dp"
+        android:linksClickable="true"
+        android:textSize="15sp"
+        android:textAlignment="center"
+        android:visibility="visible"
+        android:maxLines="2"
+        android:ellipsize="end" />
 </FrameLayout>

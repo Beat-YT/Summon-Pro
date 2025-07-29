@@ -1,5 +1,7 @@
 package com.justjdupuis.summonpro
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -9,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
@@ -40,6 +43,13 @@ class VehicleListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         recyclerView = view.findViewById(R.id.list)
         progressBar = view.findViewById(R.id.progress_spinner)
+
+        val supportMessage = view.findViewById<TextView>(R.id.support_message)
+        supportMessage.setOnClickListener {
+            val url = "https://ko-fi.com/justjdupuis"
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(intent)
+        }
 
         setupRecyclerView()
         loadVehicles()
