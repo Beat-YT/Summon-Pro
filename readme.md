@@ -13,7 +13,7 @@ It works by spoofing your phone’s GPS location to always appear near your Tesl
 Tesla Smart Summon requires your phone to be within ~85 m of the car.  
 Summon Pro connects to your vehicle using the [Tesla Fleet API](https://developer.tesla.com/docs/fleet-api) and:
 
-1. Fetches live GPS location of the vehicle.
+1. Streams live GPS location of the vehicle.
 2. Calculates a spoofed phone location within ~80 m of the car (like dangling a digital “carrot on a stick”).
 3. Updates your phone’s mock GPS location accordingly.
 4. Tesla app thinks you’re nearby → Smart Summon stays active.
@@ -39,7 +39,7 @@ You can download the latest APK from the official site:
 
 ## 📱 Requirements
 
-- Android 7.0+ (API 24+)
+- Android 8.0+
 - Developer options enabled
 - “Mock location app” set to **Summon Pro**
 - Tesla account with Fleet API access
@@ -48,7 +48,7 @@ You can download the latest APK from the official site:
 ---
 
 ## 🛠 Features
-
+- 🚗 **Custom route path planning** — drag & drop waypoints for smarter summon paths (experimental)
 - 🔁 Real-time vehicle tracking via Tesla API
 - 🧭 Dynamic fake GPS location near the car
 - 📶 Works over Wi-Fi or cellular network
@@ -94,6 +94,7 @@ This project is written in **Kotlin** and uses:
 - WebSockets
 - Tesla OAuth 2.0 flow
 - ForegroundService for GPS mocking
+- Google Maps Mobile SDK
 
 Mock location is updated using Android's `LocationManager.setTestProviderLocation`.
 
@@ -101,7 +102,8 @@ Mock location is updated using Android's `LocationManager.setTestProviderLocatio
 
 ## 🧾 License
 
-MIT License. See [LICENSE](./LICENSE) for details.
+This project is licensed under the **GNU General Public License v3.0**.  
+See the [LICENSE](./LICENSE) file for full terms.
 
 ---
 
