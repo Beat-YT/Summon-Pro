@@ -2,8 +2,10 @@ package com.justjdupuis.summonpro
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import com.google.android.material.snackbar.Snackbar
@@ -39,6 +41,7 @@ import android.text.SpannableString
 import android.text.method.LinkMovementMethod
 import android.text.util.Linkify
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
 import com.justjdupuis.summonpro.api.UpdateCheck
 
 class MainActivity : AppCompatActivity() {
@@ -82,6 +85,19 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                        1001
+                    )
+
+                    return@setOnClickListener
+                }
+            }
 
             if (FirstFragment.pathPoints.isEmpty()) {
                 Snackbar.make(view, "No path points available — Tap on map to set a target location", Snackbar.LENGTH_LONG)
@@ -300,6 +316,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 1001) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // permission granted
+            } else {
+                Toast.makeText(this, "Notification permission denied. Needs Notification perm for foreground service.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     override fun onDestroy() {
         super.onDestroy()
